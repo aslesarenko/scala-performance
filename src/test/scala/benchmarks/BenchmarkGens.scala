@@ -6,6 +6,7 @@ import org.scalameter.api.{Gen, Bench, *}
 trait BenchmarkGens { suite: Bench[Double] =>
   def maxSize = 100000
 
+  val highSizes = Gen.exponential("size")(100, maxSize * 10, 10)
   val sizes = Gen.exponential("size")(10, maxSize, 10)
   val lowSizes = Gen.exponential("size")(1, maxSize / 10, 10)
 
