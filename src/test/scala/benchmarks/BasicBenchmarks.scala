@@ -14,10 +14,11 @@ import scala.util.Random
 
 trait BenchmarkCases extends BenchmarkGens { suite: Bench[Double] =>
   private val configForSeqVsArray = Seq[KeyValue](
-    KeyValue(exec.benchRuns -> 50),
-    KeyValue(exec.minWarmupRuns -> 30),
-    KeyValue(exec.maxWarmupRuns -> 50),
-    KeyValue(exec.requireGC -> true)
+    exec.benchRuns := 50,
+    exec.minWarmupRuns := 30,
+    exec.maxWarmupRuns := 50,
+    exec.requireGC := true
+//    exec.jvmflags := List("-Xmx4096m", "-Xms4096m")
   )
 
   performance.of("Boxed vs Unboxed Array[Int]").config(configForSeqVsArray:_*) in {
@@ -66,9 +67,7 @@ trait BenchmarkCases extends BenchmarkGens { suite: Bench[Double] =>
     var res: Map[Int,Int] = null
     measure method "Map()" in {
       using(sizes) in { case n =>
-        cfor(0)(_ < n, _ + 1) { _ =>
-          res = Map[Int,Int]()
-        }
+        cfor(0)(_ < n, _ + 1) { _ => res = Map[Int,Int]() }
       }
     }
     measure method "Map.empty" in {
@@ -81,12 +80,12 @@ trait BenchmarkCases extends BenchmarkGens { suite: Bench[Double] =>
   performance.of("foreach vs cfor").config(configForSeqVsArray:_*) in {
     var cell: Int = 0
     measure method "foreach" in {
-      using(arrays) in { case (xs, _) =>
+      using(seqs) in { case (xs, _) =>
         xs.foreach { x => cell = x }
       }
     }
     measure method "cfor" in {
-      using(arrays) in { case (xs, _) =>
+      using(seqs) in { case (xs, _) =>
         cfor(0)(_ < xs.length, _ + 1) { i => cell = xs(i) }
       }
     }
@@ -95,12 +94,12 @@ trait BenchmarkCases extends BenchmarkGens { suite: Bench[Double] =>
   performance.of("for over Range").config(configForSeqVsArray:_*) in {
     var cell: Int = 0
     measure method "foreach" in {
-      using(arrays) in { case (xs, _) =>
+      using(seqs) in { case (xs, _) =>
         (0 until xs.length).foreach { i => cell = xs(i) }
       }
     }
     measure method "cforRange" in {
-      using(arrays) in { case (xs, _) =>
+      using(seqs) in { case (xs, _) =>
         cforRange(0 until xs.length) { i => cell = xs(i) }
       }
     }
@@ -296,55 +295,51 @@ trait BenchmarkCases extends BenchmarkGens { suite: Bench[Double] =>
       using(lowSizes) in { n =>
         val text = "(a[b{c" * n + "}])" * n
         res = CheckBracketsOpt.isBalanced(text)
+        assert(res == -1)
       }
     }
   }
 
-  //  performance.of("edit distance").config(configForSeqVsArray: _*) in {
-//    measure method "distance" in {
-//      var res: Int = 0
-//      using(lowSizes) in { n =>
-//        val s = randomString(n)
-//        val t = randomString(n)
-//        res = EditDistance.distance(s, t)
-//      }
-//    }
-//    measure method "distance_opt" in {
-//      var res: Int = 0
-//      using(lowSizes) in { n =>
-//        val s = randomString(n)
-//        val t = randomString(n)
-//        res = EditDistance.distanceOpt(s, t)
-//      }
-//    }
-//  }
+  performance.of("random string") in {
+    var res: String = null
+    measure method "slow" in {
+      using(lowSizes) in { n =>
+        res = randomString(n)
+      }
+    }
+    measure method "fast" in {
+      using(lowSizes) in { n =>
+        res = randomStringOpt(n)
+      }
+    }
+  }
+
+  val chars = (('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9')).toArray // Define valid characters
+  def nextChar(r: Random) = chars(r.nextInt(chars.length))
 
   def randomString(length: Int): String = {
-    val chars = ('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9') // Define valid characters
     val random = new Random()
-    (1 to length).map(_ => chars(random.nextInt(chars.length))).mkString
+    val sb = new StringBuilder(length)
+    (0 until length).foreach { _ => sb += nextChar(random) }
+    sb.result()
   }
 
   def randomStringOpt(length: Int): String = {
-    val chars = (('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9')).toArray // Define valid characters
     val random = new Random()
-    val buf = new Array[Char](length)
-    cforRange(0 until length) { i =>
-      buf(i) = chars(random.nextInt(chars.length))
-    }
-    buf.mkString
+    val sb = new StringBuilder(length)
+    cforRange(0 until length) { _ => sb += nextChar(random) }
+    sb.result()
   }
 
 }
 
-object FastBenchmark extends Bench.LocalTime with BenchmarkCases {
+object Benchmark extends Bench.LocalTime with BenchmarkCases {
   val r = new LoggingReporter[Double]
   override def reporter: Reporter[Double] = new Reporter[Double] {
     override def report(result: CurveData[Double], persistor: Persistor): Unit =
       r.report(result, persistor)
 
     override def report(results: Tree[CurveData[Double]], persistor: Persistor): Boolean = {
-      r.report(results, persistor)
       def headerLine(slowTitle: String, fastTitle: String) =
         log.report(s"| Size       | ${(slowTitle + ", ms").padTo(13, ' ')}| ${(fastTitle + ", ms").padTo(13, ' ')}| Speedup    |")
       def separatorLine() =

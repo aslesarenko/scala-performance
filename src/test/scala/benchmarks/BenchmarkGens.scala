@@ -3,6 +3,8 @@ package benchmarks
 import org.scalameter.KeyValue
 import org.scalameter.api.{Gen, Bench, *}
 
+import scala.collection.compat.immutable.ArraySeq
+
 trait BenchmarkGens { suite: Bench[Double] =>
   def maxSize = 100000
 
@@ -13,4 +15,6 @@ trait BenchmarkGens { suite: Bench[Double] =>
   val ranges = for { size <- sizes } yield (0 until size, maxSize / size)
 
   val arrays = ranges.map { case (r, i) => (r.toArray, i) }
+  
+  val seqs = ranges.map { case (r, i) => (ArraySeq.unsafeWrapArray(r.toArray): Seq[Int], i) }
 }
