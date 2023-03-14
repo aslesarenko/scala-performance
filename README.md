@@ -16,7 +16,7 @@ Run the benchmarks with the following command:
 sbt "Test/runMain benchmarks.Benchmark"
 ```
 
-Follow the instructions in the ScalaDoc of `Benchmark` class to add your own benchmarks.
+Follow the instructions in the ScalaDoc of `BenchmarkCases` class to add your own benchmark cases.
 
 ### Usage
 

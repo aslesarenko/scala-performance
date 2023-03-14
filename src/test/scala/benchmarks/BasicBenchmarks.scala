@@ -12,6 +12,20 @@ import scala.collection.compat.immutable.ArraySeq
 import scala.collection.immutable.Seq
 import scala.util.Random
 
+/** Contains benchmark cases of the form:
+  * performance.of("benchmark name") in {
+  *   measure method "slow version" in {
+  *   }
+  *   measure method "fast version" in {
+  *   }
+  * }
+  * 
+  * When each `performance.of` block has exactly two `measure` blocks, then report is
+  * generated which compares slow and fast versions.
+  * 
+  * If you want add a new benchmark case, just add a new `performance.of` block with two
+  * `measure` blocks.
+  */
 trait BenchmarkCases extends BenchmarkGens { suite: Bench[Double] =>
   private val configForSeqVsArray = Seq[KeyValue](
     exec.benchRuns := 50,
