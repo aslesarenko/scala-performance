@@ -1,6 +1,6 @@
 # Scala-performance guidance 
 
-This repository contains a supplemental code for my article [Scala Code Performance For No Efforts]().
+This repository contains a supplemental code for my article [Scala Code Performance For No Efforts](https://hackernoon.com/how-to-optimize-scala-code-performance-with-almost-no-effort).
 
 ### Examples of optimization
 
